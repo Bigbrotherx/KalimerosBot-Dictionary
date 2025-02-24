@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from models import Word, UserWord
 from database import async_session
+from deepl_api import translate_greek_to_russian
 
 
 class CRUDStatus(enum.Enum):
@@ -31,7 +32,8 @@ async def get_word(word: str, translation: str):
 
 
 async def create_word(user_id: str, word: str, translation: str):
-
+    if translation is None:
+        translation = translate_greek_to_russian(word)
     async with async_session() as session:
         async with session.begin():
             db_word = await get_word(word=word, translation=translation)
@@ -65,6 +67,8 @@ async def update_word(user_id: str, word: str, new_translation: str):
             new_word_entry = await get_word(
                 word=word, translation=new_translation)
             if new_word_entry is None:
+                if new_translation is None:
+                    new_translation = translate_greek_to_russian(word)
                 new_word_entry = Word(word=word, translation=new_translation)
                 session.add(new_word_entry)
                 await session.flush()
